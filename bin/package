@@ -3,7 +3,8 @@
 language='java'
 
 dependencies=(
-  'http://lang-jvm.s3.amazonaws.com/jvm-buildpack-common-v8.tar.gz'
+  'http://lang-jvm.s3.amazonaws.com/jvm-buildpack-common-v10.tar.gz'
+  'http://lang-jvm.s3.amazonaws.com/jdk/cedar-14/openjdk1.9-latest.tar.gz'
   'http://lang-jvm.s3.amazonaws.com/jdk/openjdk1.8.0_20-slim-cedar14-v2.tar.gz'
   'http://lang-jvm.s3.amazonaws.com/jdk/openjdk1.7.0_55-cedar14-v2.tar.gz'
   'http://lang-jvm.s3.amazonaws.com/jdk/openjdk1.6.0_27.tar.gz'
