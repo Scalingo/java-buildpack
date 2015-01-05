@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+
+language='java'
+
+dependencies=(
+  'http://lang-jvm.s3.amazonaws.com/jvm-buildpack-common-v8.tar.gz'
+  'http://lang-jvm.s3.amazonaws.com/jdk/openjdk1.8.0_20-slim-cedar14-v2.tar.gz'
+  'http://lang-jvm.s3.amazonaws.com/jdk/openjdk1.7.0_55-cedar14-v2.tar.gz'
+  'http://lang-jvm.s3.amazonaws.com/jdk/openjdk1.6.0_27.tar.gz'
+)
+
+excluded_files=(
+  '.git/'
+  '.gitignore'
+  '.gitmodules'
+  'cf_spec/'
+  'log/'
+  'test/'
+  'bin/package'
+  'buildpack-packager/'
+)
+
+BIN="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source $BIN/../buildpack-packager/lib/packager
+
+package_buildpack $@
