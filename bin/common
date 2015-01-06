@@ -2,8 +2,6 @@
 
 DEFAULT_MAVEN_VERSION="3.2.5"
 
-DEFAULT_MAVEN_VERSION="3.2.3"
-
 real_curl=$(which curl)
 function curl() {
   local http_url=''
