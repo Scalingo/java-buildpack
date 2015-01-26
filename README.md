@@ -1,7 +1,7 @@
-Heroku buildpack: Java [![Build Status](https://travis-ci.org/heroku/heroku-buildpack-java.svg)](https://travis-ci.org/heroku/heroku-buildpack-java)
-=========================
+Buildpack: Java
+===============
 
-This is a [Heroku buildpack](http://devcenter.heroku.com/articles/buildpack) for Java apps.
+This is a [Buildpack](http://doc.scalingo.com/buildpacks) for Java apps.
 It uses Maven 3.2.5 to build your application and OpenJDK 8u20 to run it (by default).
 
 Usage
@@ -12,12 +12,10 @@ Example usage:
     $ ls
     Procfile  pom.xml  src
 
-    $ heroku create --buildpack http://github.com/heroku/heroku-buildpack-java.git
+    $ scalingo create java-app
 
-    $ git push heroku master
+    $ git push scalingo master
     ...
-    -----> Heroku receiving push
-    -----> Fetching custom language pack... done
     -----> Java app detected
     -----> Installing OpenJDK 1.8... done
     -----> Installing Maven 3.2.5... done
@@ -49,10 +47,8 @@ Example:
 
     $ git add system.properties && git commit -m "Java 7"
 
-    $ git push heroku master
+    $ git push scalingo master
     ...
-    -----> Heroku receiving push
-    -----> Fetching custom language pack... done
     -----> Java app detected
     -----> Installing OpenJDK 1.7... done
     ...
@@ -80,8 +76,8 @@ There are three config variables that can be used to customize the Maven executi
 These variables can be set like this:
 
 ```sh-session
-$ heroku config:set MAVEN_CUSTOM_GOALS="clean package"
-$ heroku config:set MAVEN_CUSTOM_OPTS="--update-snapshots -DskipTests=true"
+$ scalingo env-set MAVEN_CUSTOM_GOALS="clean package"
+$ scalingo env-unset MAVEN_CUSTOM_OPTS="--update-snapshots -DskipTests=true"
 ```
 
 Other options are available for [defining custom a `settings.xml` file](https://devcenter.heroku.com/articles/using-a-custom-maven-settings-xml).
@@ -99,9 +95,9 @@ For example if you want to have maven available to use at runtime in your applic
 
 This will copy the local maven repo and maven binaries into your slug.
 
-Commit and push the changes to your buildpack to your Github fork, then push your sample app to Heroku to test. Once the push succeeds you should be able to run:
+Commit and push the changes to your buildpack to your Github fork, then push your sample app to Scalingo to test. Once the push succeeds you should be able to run:
 
-    $ heroku run bash
+    $ scalingo run bash
 
 and then:
 
