@@ -1,3 +1,11 @@
+#!/usr/bin/env bash
+
+#if [ -n "$JVM_COMMON_BRANCH" ]; then
+  #jvmCommonUrl="https://api.github.com/repos/heroku/heroku-buildpack-jvm-common/tarball/${JVM_COMMON_BRANCH}"
+#elif [ -n "$JVM_COMMON_BUILDKIT" ]; then
+  #jvmCommonUrl="https://codon-buildpacks.s3.amazonaws.com/buildpacks/$JVM_COMMON_BUILDKIT/jvm-common.tgz"
+#fi
+
 hatchet install &&
 HATCHET_RETRIES=3 \
 HATCHET_DEPLOY_STRATEGY=git \

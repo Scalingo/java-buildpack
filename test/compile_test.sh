@@ -2,6 +2,16 @@
 
 . ${BUILDPACK_TEST_RUNNER_HOME}/lib/test_utils.sh
 
+assertCapturedSuccess() {
+  assertEquals 0 "${RETURN}"
+  if [ "$TRAVIS" = "true" ]; then
+    # Travis keeps injecting -Xmn option on JDK8 that causes a warning in STR_ERR
+    assertTrue true
+  else
+    assertEquals "" "$(cat ${STD_ERR})"
+  fi
+}
+
 createPom()
 {
   cat > ${BUILD_DIR}/pom.xml <<EOF
@@ -36,6 +46,8 @@ EOF
 
 createSettingsXml()
 {
+  [ "$TRAVIS" = "true" ] && rm -rf /home/travis/.m2/repository
+
   if [ ! -z "$1" ]; then
     SETTINGS_FILE=$1
   else
@@ -74,7 +86,7 @@ _assertMaven305() {
   assertFileMD5 "7d2bdb60388da32ba499f953389207fe" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
 
-  assertCaptured "executing $CACHE_DIR/.maven/bin/mvn -B -Duser.home=$BUILD_DIR -Dmaven.repo.local=$CACHE_DIR/.m2/repository  -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
   assertCaptured "BUILD SUCCESS"
 }
 
@@ -83,16 +95,25 @@ _assertMaven311() {
   assertFileMD5 "08a6e3ab11f4add00d421dfa57ef4c85" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
 
-  assertCaptured "executing $CACHE_DIR/.maven/bin/mvn -B -Duser.home=$BUILD_DIR -Dmaven.repo.local=$CACHE_DIR/.m2/repository  -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
   assertCaptured "BUILD SUCCESS"
 }
 
-_assertMavenLatest() {
+_assertMaven325() {
   assertCaptured "Installing Maven 3.2.5"
   assertFileMD5 "9d4c6b79981a342940b9eff660070748" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
 
-  assertCaptured "executing $CACHE_DIR/.maven/bin/mvn -B -Duser.home=$BUILD_DIR -Dmaven.repo.local=$CACHE_DIR/.m2/repository  -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
+  assertCaptured "BUILD SUCCESS"
+}
+
+_assertMavenLatest() {
+  assertCaptured "Installing Maven 3.3.1"
+  assertFileMD5 "33b5239bdf488c9867f95dbb93ffc0a6" ${CACHE_DIR}/.maven/bin/mvn
+  assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
+
+  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
   assertCaptured "BUILD SUCCESS"
 }
 
@@ -129,7 +150,8 @@ testCompilationFailure()
 
   compile
 
-  assertCapturedError "Failed to build app with Maven"
+  assertNotEquals 0 "${RETURN}"
+  assertContains "Failed to build app with Maven" "$(cat ${STD_OUT})"
 }
 
 testDownloadCaching()
@@ -155,45 +177,12 @@ testNewAppsRemoveM2Cache()
   rm -r ${CACHE_DIR} # simulate a brand new app without a cache dir
 
   assertFalse "Precondition: New apps should not have a CACHE_DIR prior to running" "[ -d ${CACHE_DIR} ]"
-  assertFalse "Precondition: New apps should not have a removeM2Cache file prior to running" "[ -f ${CACHE_DIR}/removeM2Cache ]"
 
   compile
 
   assertCapturedSuccess
-  assertTrue "removeM2Cache file should now exist in cache" "[ -f ${CACHE_DIR}/removeM2Cache ]"
   assertFalse ".m2 should not be copied to build dir" "[ -d ${BUILD_DIR}/.m2 ]"
   assertFalse ".maven should not be copied to build dir" "[ -d ${BUILD_DIR}/.maven ]"
-}
-
-testNonLegacyExistingAppsRemoveCache()
-{
-  createPom
-  touch ${CACHE_DIR}/removeM2Cache # simulate a previous run with no cache dir
-
-  assertTrue "Precondition: Existing apps should have a CACHE_DIR from previous run" "[ -d ${CACHE_DIR} ]"
-  assertTrue "Precondition: Existing apps should have a removeM2Cache file from previous run" "[ -f ${CACHE_DIR}/removeM2Cache ]"
-
-  compile
-
-  assertCapturedSuccess
-  assertTrue "removeM2Cache file should still exist in cache" "[ -f ${CACHE_DIR}/removeM2Cache ]"
-  assertFalse ".m2 should not be copied to build dir" "[ -d ${BUILD_DIR}/.m2 ]"
-  assertFalse ".maven should not be copied to build dir" "[ -d ${BUILD_DIR}/.maven ]"
-}
-
-testLegacyAppsKeepM2Cache()
-{
-  createPom
-
-  assertTrue  "Precondition: Legacy apps should have a CACHE_DIR from a previous run" "[ -d ${CACHE_DIR} ]"
-  assertFalse "Precondition: Legacy apps should not have a removeM2Cache file" "[ -f ${CACHE_DIR}/removeM2Cache ]"
-
-  compile
-
-  assertCapturedSuccess
-  assertFalse "removeM2Cache file should not exist in cache" "[ -f ${CACHE_DIR}/removeM2Cache ]"
-  assertEquals ".m2 should be copied to build dir" "" "$(diff -r ${CACHE_DIR}/.m2 ${BUILD_DIR}/.m2)"
-  assertEquals ".maven should be copied to build dir" "" "$(diff -r ${CACHE_DIR}/.maven ${BUILD_DIR}/.maven)"
 }
 
 testCustomSettingsXml()
@@ -204,7 +193,7 @@ testCustomSettingsXml()
   compile
 
   assertCapturedSuccess
-  assertCaptured "Downloading: http://repository.jboss.org/nexus/content/groups/public"
+  assertCaptured "Should download from JBoss" "Downloading: http://repository.jboss.org/nexus/content/groups/public"
 }
 
 testCustomSettingsXmlWithPath()
@@ -218,7 +207,7 @@ testCustomSettingsXmlWithPath()
   compile
 
   assertCapturedSuccess
-  assertCaptured "Downloading: http://repository.jboss.org/nexus/content/groups/public"
+  assertCaptured "Should download from JBoss" "Downloading: http://repository.jboss.org/nexus/content/groups/public"
 
   unset MAVEN_SETTINGS_PATH
 }
@@ -235,7 +224,7 @@ testCustomSettingsXmlWithUrl()
 
   assertCapturedSuccess
   assertCaptured "Installing settings.xml"
-  assertCaptured "Downloading: http://repository.jboss.org/nexus/content/groups/public"
+  assertCaptured "Should download from JBoss" "Downloading: http://repository.jboss.org/nexus/content/groups/public"
 
   unset MAVEN_SETTINGS_URL
 }
@@ -281,10 +270,6 @@ EOF
 
 testMavenUpgrade()
 {
-  # travis doesn't have openjdk8 yet, and some setting it uses causes maven
-  # to pick up -XX:MaxPermSize, which writes a warning to STD_OUT on jdk8,
-  # which causes this to fail.
-  if [ "$TRAVIS" != "true" ]; then
     cat > ${BUILD_DIR}/system.properties <<EOF
 maven.version=3.0.5
 EOF
@@ -303,7 +288,6 @@ EOF
     compile
 
     assertCapturedSuccess
-  fi
 }
 
 testMavenSkipUpgrade()
@@ -329,7 +313,7 @@ EOF
   assertNotCaptured "Installing Maven"
   assertFileMD5 "7d2bdb60388da32ba499f953389207fe" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
-  assertCaptured "executing $CACHE_DIR/.maven/bin/mvn -B -Duser.home=$BUILD_DIR -Dmaven.repo.local=$CACHE_DIR/.m2/repository  -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
   assertCaptured "BUILD SUCCESS"
 }
 
