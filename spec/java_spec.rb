@@ -4,7 +4,7 @@ describe "Java" do
 
   def expect_successful_maven(jdk_version)
     expect(app.output).to include("Installing OpenJDK #{jdk_version}")
-    expect(app.output).to include("Installing Maven 3.3.1")
+    expect(app.output).to include("Installing Maven 3.3.9")
     expect(app.output).not_to include("Installing settings.xml")
     expect(app.output).not_to include("BUILD FAILURE")
     expect(app.output).to include("BUILD SUCCESS")
@@ -19,14 +19,15 @@ describe "Java" do
     context "on jdk-#{version}" do
       let(:app) { Hatchet::Runner.new("java-servlets-sample") }
       let(:jdk_version) { version }
-      it "should not install settings.xml" do
+      it "should reinstall maven" do
         app.deploy do |app|
           expect_successful_maven(jdk_version)
+          expect(app.output).to include("BUILD SUCCESS")
           expect(successful_body(app)).to eq("Hello from Java!")
 
           `git commit -am "redeploy" --allow-empty`
           app.push!
-          expect(app.output).not_to include("Installing Maven")
+          expect_successful_maven(jdk_version)
           expect(app.output).to include("BUILD SUCCESS")
           expect(successful_body(app)).to eq("Hello from Java!")
         end
@@ -40,14 +41,13 @@ describe "Java" do
     it "should not compile 1.7 source" do
       app.deploy do |app|
         expect(app).not_to be_deployed
-        expect(app.output).to include("javac: invalid target release: 1.7")
-        expect(app.output).to include("BUILD FAILURE")
+        expect(app.output).to include("Unsupported major.minor version 51.0")
       end
     end
   end
 
   context "korvan" do
-    ["1.6", "1.7", "1.8"].each do |version|
+    ["1.7", "1.8"].each do |version|
       let(:app) { Hatchet::Runner.new("korvan") }
       context "on jdk-#{version}" do
         let(:jdk_version) { version }
@@ -57,25 +57,34 @@ describe "Java" do
 
             expect(successful_body(app)).to eq("/1")
 
+            expect(app.run("echo \$JAVA_OPTS")).
+                to include(%q{-Xmx350m -Xss512k})
+
+            sleep 1 # make sure the dynos don't overlap
             expect(app.run("jce")).
-                to match(%r{Picked up JAVA_TOOL_OPTIONS: -Xmx384m -Xss512k -Dfile.encoding=UTF-8 -Djava.rmi.server.useCodebaseOnly=true}).
-                and include(%q{Encrypting, "Test"}).
+                to include(%q{Encrypting, "Test"}).
                 and include(%q{Decrypted: Test})
 
+            sleep 1 # make sure the dynos don't overlap
             expect(app.run("netpatch")).
                 to include(%q{name:eth0 (eth0)}).
                 and include(%q{name:lo (lo)})
 
+            sleep 1 # make sure the dynos don't overlap
             expect(app.run("https")).
                 to include("Successfully invoked HTTPS service.").
                 and match(%r{"X-Forwarded-Proto(col)?": "https"})
+
+            sleep 1 # make sure the dynos don't overlap
+            expect(app.run("pgssl")).
+                to include("sslmode: require")
           end
         end
       end
     end
   end
 
-  %w{1.6 1.7 1.8}.each do |version|
+  %w{1.7 1.8}.each do |version|
     context "#{version} with webapp-runner" do
       let(:app) { Hatchet::Runner.new("webapp-runner-sample") }
       let(:jdk_version) { version }

@@ -2,7 +2,7 @@ Buildpack: Java
 ===============
 
 This is a [Buildpack](http://doc.scalingo.com/buildpacks) for Java apps.
-It uses Maven 3.3.1 to build your application and OpenJDK 8 to run it (by default).
+It uses Maven 3.3.9 to build your application and OpenJDK 8 to run it. However, the JDK version can be configured as described below.
 
 ## How it works
 
@@ -32,21 +32,22 @@ The buildpack will detect your app as Java if it has a `pom.xml` file in its roo
 
 ### Choose a JDK
 
-Create a `system.properties` file in the root of your project directory and set `java.runtime.version=1.7`.
+Create a `system.properties` file in the root of your project directory and set `java.runtime.version=1.8`.
 
 Example:
 
     $ ls
     Procfile pom.xml src
 
-    $ echo "java.runtime.version=1.7" > system.properties
+    $ echo "java.runtime.version=1.8" > system.properties
 
-    $ git add system.properties && git commit -m "Java 7"
+    $ git add system.properties && git commit -m "Java 8"
 
     $ git push scalingo master
     ...
     -----> Java app detected
-    -----> Installing OpenJDK 1.7... done
+    -----> Installing OpenJDK 1.8... done
+    -----> Installing Maven 3.3.9... done
     ...
 
 ### Choose a Maven Version
@@ -55,43 +56,42 @@ The `system.properties` file also allows for `maven.version` entry
 (regardless of whether you specify a `java.runtime.version` entry). For example:
 
 ```
-java.runtime.version=1.7
+java.runtime.version=1.8
 maven.version=3.1.1
 ```
 
-Supported versions of Maven include 3.0.5, 3.1.1, 3.2.5 and 3.3.1. You can request new
+Supported versions of Maven include 3.0.5, 3.1.1, 3.2.5 and 3.3.9. You can request new
 versions of Maven by submitting a pull request against `vendor/maven/sources.txt`.
 
 ### Customize Maven
 
 There are three config variables that can be used to customize the Maven execution:
 
-+ `MAVEN_CUSTOM_GOALS`: set to `clean install` by default
-+ `MAVEN_CUSTOM_OPTS`: set to `-DskipTests=true` by default
++ `MAVEN_CUSTOM_GOALS`: set to `clean dependency:list install` by default
++ `MAVEN_CUSTOM_OPTS`: set to `-DskipTests` by default
++ `MAVEN_JAVA_OPTS`: set to `-Xmx1024m` by default
 
 These variables can be set like this:
 
 ```sh-session
 $ scalingo env-set MAVEN_CUSTOM_GOALS="clean package"
 $ scalingo env-unset MAVEN_CUSTOM_OPTS="--update-snapshots -DskipTests=true"
+$ scalingo env-set MAVEN_JAVA_OPTS="-Xss2g"
 ```
 
-Other options are available for [defining custom a `settings.xml` file](https://devcenter.heroku.com/articles/using-a-custom-maven-settings-xml).
+## Development
 
-## Hacking
-
-
-To make changes to this buildpack, fork it on Github. Push up changes to your fork, then create a new Heroku app to test it, or configure an existing app to use your buildpack:
+To make changes to this buildpack, fork it on Github. Push up changes to your fork, then create a new Scalingo app to test it, or configure an existing app to use your buildpack:
 
 ```
-# Create a new Heroku app that uses your buildpack
-heroku create --buildpack <your-github-url>
+# Create a new Scalingo app that uses your buildpack
+scalingo create new-app
 
-# Configure an existing Heroku app to use your buildpack
-heroku config:set BUILDPACK_URL=<your-github-url>
+# Configure an existing Scalingo app to use your buildpack
+scalingo env-set GITHUB_URL=<your-github-url>
 
 # You can also use a git branch!
-heroku config:set BUILDPACK_URL=<your-github-url>#your-branch
+scalingo env-set GITHUB_URL=<your-github-url>#your-branch
 ```
 
 For example if you want to have maven available to use at runtime in your application, you can copy it from the cache directory to the build directory by adding the following lines to the compile script:

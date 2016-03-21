@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-DEFAULT_MAVEN_VERSION="3.3.1"
+DEFAULT_MAVEN_VERSION="3.3.9"
 
 export_env_dir() {
   env_dir=$1
@@ -71,19 +71,17 @@ install_maven() {
 
   definedMavenVersion=$(detect_maven_version $buildDir)
 
-  if is_maven_needed ${mavenHome} ${definedMavenVersion}; then
-    mavenVersion=${definedMavenVersion:-$DEFAULT_MAVEN_VERSION}
+  mavenVersion=${definedMavenVersion:-$DEFAULT_MAVEN_VERSION}
 
-    status_pending "Installing Maven ${mavenVersion}"
-    if is_supported_maven_version ${mavenVersion}; then
-      mavenUrl="http://lang-jvm.s3.amazonaws.com/maven-${mavenVersion}.tar.gz"
-      download_maven ${mavenUrl} ${installDir} ${mavenHome}
-      status_done
-    else
-      error_return "Error, you have defined an unsupported Maven version in the system.properties file.
-The list of known supported versions are 3.0.5, 3.1.1, 3.2.5 and 3.3.1."
-      return 1
-    fi
+  status_pending "Installing Maven ${mavenVersion}"
+  if is_supported_maven_version ${mavenVersion}; then
+    mavenUrl="http://lang-jvm.s3.amazonaws.com/maven-${mavenVersion}.tar.gz"
+    download_maven ${mavenUrl} ${installDir} ${mavenHome}
+    status_done
+  else
+    error_return "Error, you have defined an unsupported Maven version in the system.properties file.
+The default supported version is ${DEFAULT_MAVEN_VERSION}"
+    return 1
   fi
 }
 
@@ -92,7 +90,7 @@ download_maven() {
   local installDir=$2
   local mavenHome=$3
   rm -rf $mavenHome
-  curl --silent --max-time 60 --location ${mavenUrl} | tar xzm -C $installDir
+  curl --retry 3 --silent --max-time 60 --location ${mavenUrl} | tar xzm -C $installDir
   chmod +x $mavenHome/bin/mvn
 }
 
@@ -110,22 +108,6 @@ is_supported_maven_version() {
     return 0
   else
     return 1
-  fi
-}
-
-is_maven_needed() {
-  local mavenHome=${1}
-  local newMavenVersion=${2}
-  if [ -d $mavenHome ]; then
-    if [ -z "$newMavenVersion" ]; then
-      return 1
-    else
-      mavenVersionLine=$($mavenHome/bin/mvn -v | sed -E -e 's/[ \t\r\n]//g')
-      mavenVersion=$(expr "$mavenVersionLine" : "ApacheMaven\(3\.[0-2]\.[0-9]\)")
-      test "$mavenVersion" != "$newMavenVersion"
-    fi
-  else
-    return 0
   fi
 }
 

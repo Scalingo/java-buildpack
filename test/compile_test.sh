@@ -82,38 +82,38 @@ EOF
 # Helpers
 
 _assertMaven305() {
-  assertCaptured "Installing Maven 3.0.5"
+  assertCaptured "Wrong Maven Installed" "Installing Maven 3.0.5"
   assertFileMD5 "7d2bdb60388da32ba499f953389207fe" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
 
-  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests clean dependency:list install"
   assertCaptured "BUILD SUCCESS"
 }
 
 _assertMaven311() {
-  assertCaptured "Installing Maven 3.1.1"
+  assertCaptured "Wrong Maven Installed" "Installing Maven 3.1.1"
   assertFileMD5 "08a6e3ab11f4add00d421dfa57ef4c85" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
 
-  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests clean dependency:list install"
   assertCaptured "BUILD SUCCESS"
 }
 
 _assertMaven325() {
-  assertCaptured "Installing Maven 3.2.5"
+  assertCaptured "Wrong Maven Installed" "Installing Maven 3.2.5"
   assertFileMD5 "9d4c6b79981a342940b9eff660070748" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
 
-  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests clean dependency:list install"
   assertCaptured "BUILD SUCCESS"
 }
 
 _assertMavenLatest() {
-  assertCaptured "Installing Maven 3.3.1"
-  assertFileMD5 "33b5239bdf488c9867f95dbb93ffc0a6" ${CACHE_DIR}/.maven/bin/mvn
+  assertCaptured "Wrong Maven Installed" "Installing Maven 3.3.9"
+  assertFileMD5 "b34974f4c849ec2ae6481651e1f24ef1" ${CACHE_DIR}/.maven/bin/mvn
   assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
 
-  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
+  assertCaptured "Executing: mvn -B -DskipTests clean dependency:list install"
   assertCaptured "BUILD SUCCESS"
 }
 
@@ -152,23 +152,6 @@ testCompilationFailure()
 
   assertNotEquals 0 "${RETURN}"
   assertContains "Failed to build app with Maven" "$(cat ${STD_OUT})"
-}
-
-testDownloadCaching()
-{
-  createPom
-
-  # simulate a primed cache
-  mkdir -p ${CACHE_DIR}/.m2
-  mkdir -p ${CACHE_DIR}/.maven/bin
-  cat > ${CACHE_DIR}/.maven/bin/mvn <<EOF
-echo "Apache Maven 3.2.3"
-EOF
-  chmod +x ${CACHE_DIR}/.maven/bin/mvn
-
-  compile
-
-  assertNotCaptured "Maven should not be installed again when already cached" "Installing Maven"
 }
 
 testNewAppsRemoveM2Cache()
@@ -288,33 +271,6 @@ EOF
     compile
 
     assertCapturedSuccess
-}
-
-testMavenSkipUpgrade()
-{
-  cat > ${BUILD_DIR}/system.properties <<EOF
-maven.version=3.0.5
-EOF
-
-  createPom "$(withDependency)"
-
-  compile
-
-  assertCapturedSuccess
-
-  _assertMaven305
-
-  rm ${BUILD_DIR}/system.properties
-
-  compile
-
-  assertCapturedSuccess
-
-  assertNotCaptured "Installing Maven"
-  assertFileMD5 "7d2bdb60388da32ba499f953389207fe" ${CACHE_DIR}/.maven/bin/mvn
-  assertTrue "mvn should be executable" "[ -x ${CACHE_DIR}/.maven/bin/mvn ]"
-  assertCaptured "Executing: mvn -B -DskipTests=true clean install"
-  assertCaptured "BUILD SUCCESS"
 }
 
 testMavenInvalid()
