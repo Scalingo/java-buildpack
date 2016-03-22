@@ -24,6 +24,8 @@ function curl() {
 
   for i ; do
     case "$i" in
+    --retry)
+      shift; shift;;
     -O|--remote-name)
       create_output_filename=true
       shift;;
@@ -48,16 +50,16 @@ function curl() {
     write_file=$(echo ${http_url} | rev | cut -d\/ -f1 | rev)
   fi
 
-  if test -f $BIN_DIR/../dependencies/$filename
+  if test -f $BP_DIR/dependencies/$filename
   then
     ## Was a file to write to provided?
     if [[ -n "$write_file" ]]
     then
       ## Write to file
-      cat $BIN_DIR/../dependencies/$filename > $write_file
+      cat $BP_DIR/dependencies/$filename > $write_file
     else
       # Stream output
-    cat $BIN_DIR/../dependencies/$filename
+    cat $BP_DIR/dependencies/$filename
     fi
   else
     $real_curl $curl_args
