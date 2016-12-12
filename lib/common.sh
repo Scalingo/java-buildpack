@@ -5,7 +5,7 @@ DEFAULT_MAVEN_VERSION="3.3.9"
 export_env_dir() {
   env_dir=$1
   whitelist_regex=${2:-''}
-  blacklist_regex=${3:-'^(PATH|GIT_DIR|CPATH|CPPATH|LD_PRELOAD|LIBRARY_PATH|JAVA_OPTS)$'}
+  blacklist_regex=${3:-'^(PATH|GIT_DIR|CPATH|CPPATH|LD_PRELOAD|LIBRARY_PATH|JAVA_OPTS|JAVA_TOOL_OPTIONS)$'}
   if [ -d "$env_dir" ]; then
     for e in $(ls $env_dir); do
       echo "$e" | grep -E "$whitelist_regex" | grep -qvE "$blacklist_regex" &&
@@ -137,4 +137,15 @@ get_app_system_value() {
   [ -f $file ] && \
   grep -E ^$escaped_key[[:space:]=]+ $file | \
   sed -E -e "s/$escaped_key([\ \t]*=[\ \t]*|[\ \t]+)([A-Za-z0-9\.-]*).*/\2/g"
+}
+
+cache_copy() {
+  rel_dir=$1
+  from_dir=$2
+  to_dir=$3
+  rm -rf $to_dir/$rel_dir
+  if [ -d $from_dir/$rel_dir ]; then
+    mkdir -p $to_dir/$rel_dir
+    cp -pr $from_dir/$rel_dir/. $to_dir/$rel_dir
+  fi
 }
