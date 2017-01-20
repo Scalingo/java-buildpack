@@ -23,8 +23,12 @@ mkdir -p /tmp/jvm-common
 curl --retry 3 --silent --location $JVM_COMMON_BUILDPACK | tar xzm -C /tmp/jvm-common --strip-components=1
 . /tmp/jvm-common/bin/util
 . /tmp/jvm-common/bin/java
-. /tmp/jvm-common/opt/jdbc.sh
+# . /tmp/jvm-common/opt/jdbc.sh
+. $BP_DIR/lib/jdbc.sh
+
 install_java_with_overlay ${BUILD_DIR}
+
+cp "${BP_DIR}/lib/jdbc.sh" "${BUILD_DIR}/.profile.d/jdbc.sh"
 
 #create the cache dir if it doesn't exist
 mkdir -p $CACHE_DIR
