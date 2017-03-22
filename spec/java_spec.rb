@@ -14,7 +14,7 @@ describe "Java" do
     init_app(app)
   end
 
-  ["1.7", "1.8", "1.7.0_111", "1.8.0_112"].each do |version|
+  ["1.7", "1.8", "1.7.0_131", "1.8.0_121"].each do |version|
     context "on jdk-#{version}" do
       let(:app) { Hatchet::Runner.new("java-servlets-sample") }
       let(:jdk_version) { version }
@@ -29,6 +29,7 @@ describe "Java" do
           expect_successful_maven(jdk_version)
           expect(app.output).not_to include("Installing Maven")
           expect(app.output).to include("BUILD SUCCESS")
+
           expect(successful_body(app)).to eq("Hello from Java!")
 
           expect(app.run("env")).
@@ -50,7 +51,7 @@ describe "Java" do
   end
 
   context "korvan" do
-    ["1.7", "1.8", "1.7.0_111", "1.8.0_112"].each do |version|
+    ["1.7", "1.8", "1.7.0_131", "1.8.0_121"].each do |version|
       let(:app) { Hatchet::Runner.new("korvan") }
       context "on jdk-#{version}" do
         let(:jdk_version) { version }
@@ -91,7 +92,7 @@ describe "Java" do
     end
   end
 
-  %w{1.7 1.8 1.7.0_111 1.8.0_112}.each do |version|
+  %w{1.7 1.8 1.7.0_131 1.8.0_121}.each do |version|
     context "#{version} with webapp-runner" do
       let(:app) { Hatchet::Runner.new("webapp-runner-sample") }
       let(:jdk_version) { version }

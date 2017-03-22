@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# bin/test <build-dir> <env-dir> <artifact-dir>
+
+# fail fast
+set -e
+
+BP_DIR=$(cd $(dirname $0)/..; pwd) # absolute path
+. $BP_DIR/lib/common.sh
+. $BP_DIR/lib/maven.sh
+
+export_env_dir $ENV_DIR
+
+cd ${1}
+
+if has_maven_wrapper $1; then
+  ./mvnw -B test
+else
+  mvn -B test
+fi

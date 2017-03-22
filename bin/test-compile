@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# bin/compile <build-dir> <cache-dir> <env-dir>
+# bin/test-compile <build-dir> <cache-dir> <env-dir>
 
 # fail fast
 set -e
@@ -15,28 +15,17 @@ ENV_DIR=$3
 
 export_env_dir $ENV_DIR
 
-if [ "$STACK" = "scalingo" ] ; then
-  export STACK="cedar-14"
-fi
-
 JVM_COMMON_BUILDPACK=${JVM_COMMON_BUILDPACK:-https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/jvm-common.tgz}
 mkdir -p /tmp/jvm-common
 curl --retry 3 --silent --location $JVM_COMMON_BUILDPACK | tar xzm -C /tmp/jvm-common --strip-components=1
 . /tmp/jvm-common/bin/util
 . /tmp/jvm-common/bin/java
-# . /tmp/jvm-common/opt/jdbc.sh
-. $BP_DIR/lib/jdbc.sh
-
+. /tmp/jvm-common/opt/jdbc.sh
 install_java_with_overlay ${BUILD_DIR}
 
-cp "${BP_DIR}/lib/jdbc.sh" "${BUILD_DIR}/.profile.d/jdbc.sh"
+cd $BUILD_DIR
 
-#create the cache dir if it doesn't exist
-mkdir -p $CACHE_DIR
-
-run_mvn "compile" $BUILD_DIR $CACHE_DIR
-
-if has_maven_wrapper $BUILD_DIR; then
-  cache_copy ".m2/wrapper" $BUILD_DIR $CACHE_DIR
-  rm -rf $BUILD_DIR/.m2
-fi
+cache_copy ".m2" $CACHE_DIR $BUILD_DIR
+run_mvn "test-compile" $BUILD_DIR $BUILD_DIR
+write_mvn_profile $BUILD_DIR
+cache_copy ".m2" $BUILD_DIR $CACHE_DIR
