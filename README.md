@@ -1,6 +1,6 @@
 Buildpack: Java
 
-This is a [Buildpack](http://doc.scalingo.com/buildpacks) for Java apps.
+This is a [Buildpack](https://doc.scalingo.com/buildpacks) for Java apps.
 It uses Maven 3.3.9 to build your application and OpenJDK 8 to run it. However, the JDK version can be configured as described below.
 
 ## How it works
