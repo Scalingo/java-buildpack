@@ -1,11 +1,28 @@
 # Java Buildpack Changelog
 
-v1.1.0 15 Mar 2015
-===================
+## master
 
-* Use buildpack-deployer instead of buildpack-packager
++ Improved error behavior for MAVEN_SETTINGS_URL
++ Changed location of JVM common buildpack
 
-## Master
+## v59
+
++ Add support for settings.xml in bin/test
+
+## v58
+
++ Added mcount of kotlin and groovy files in the repo
++ PR #92: Fix some Bash issues
+
+## v57
+
++ Added measurement of build time with and without cache
+
+## v55
+
++ Added message when pom.xml is not found
+
+## v42
 
 + Use latest version of Maven by default
 

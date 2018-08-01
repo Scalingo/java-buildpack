@@ -1,20 +1,18 @@
 language: java
+jdk:
+  - oraclejdk8
+dist: trusty
 branches:
   only:
   - master
-before_install: bash etc/travis-setup.sh
+before_install: bash etc/ci-setup.sh
 install: true
-script: eval $TEST_CMD
-after_script: heroku keys:remove $USER@`hostname`
+script: /tmp/testrunner/bin/run -c . && bash etc/hatchet.sh
+after_script: if [ -n "$HEROKU_API_KEY" ]; then heroku keys:remove $USER@`hostname`; fi
 env:
   global:
   - IS_RUNNING_ON_TRAVIS=true
-  - HATCHET_RETRIES=3
-  - HATCHET_DEPLOY_STRATEGY=git
-  - HATCHET_BUILDPACK_BASE="https://github.com/heroku/heroku-buildpack-java.git"
-  - HATCHET_APP_LIMIT=20
   - SHUNIT_HOME="/tmp/shunit2-2.1.6"
-  - secure: YjVlEmHqEhJrt14XnYTr7K7tD19GD3BSgwdeURsbxabBaIuhXnsUF74uB2sunUZ8nFWj94gE4ONM+G8wu/Dxrm/Xrj663QO7Qojb6PJH0OUcG15y3c80bTtic7yaMbRv43pVR0C1e58qAj4Lc0ELcagd+6FOpqwgVaqGC51geis=
   matrix:
-  - TEST_CMD='if [ "$TRAVIS_PULL_REQUEST" != "false" ] && [ -n "$HEROKU_API_KEY" ]; then ./mvnw verify; else echo "Skipping hatchet tests for third-party PR"; fi'
-  - TEST_CMD="/tmp/testrunner/bin/run -c ."
+  - HEROKU_TEST_STACK="heroku-16"
+  - HEROKU_TEST_STACK="heroku-18"

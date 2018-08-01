@@ -3,8 +3,7 @@ require_relative 'spec_helper'
 describe "Java" do
 
   def expect_successful_maven(jdk_version)
-    expect(app.output).to include("Installing OpenJDK #{jdk_version}")
-    expect(app.output).not_to include("Installing settings.xml")
+    expect(app.output).to include("Installing JDK #{jdk_version}")
     expect(app.output).not_to include("BUILD FAILURE")
     expect(app.output).to include("BUILD SUCCESS")
   end
@@ -14,7 +13,7 @@ describe "Java" do
     init_app(app)
   end
 
-  ["1.7", "1.8", "1.7.0_131", "1.8.0_121"].each do |version|
+  ["1.7", "1.8", "1.7.0_161", "1.8.0_144"].each do |version|
     context "on jdk-#{version}" do
       let(:app) { Hatchet::Runner.new("java-servlets-sample") }
       let(:jdk_version) { version }
@@ -51,7 +50,7 @@ describe "Java" do
   end
 
   context "korvan" do
-    ["1.7", "1.8", "1.7.0_131", "1.8.0_121"].each do |version|
+    ["1.7", "1.8", "1.7.0_161", "1.8.0_152", "9", "9.0.1", "10"].each do |version|
       let(:app) { Hatchet::Runner.new("korvan") }
       context "on jdk-#{version}" do
         let(:jdk_version) { version }
@@ -62,7 +61,7 @@ describe "Java" do
             expect(successful_body(app)).to eq("/1")
 
             expect(app.run("echo \$JAVA_OPTS")).
-                to include(%q{-Xmx350m -Xss512k})
+                to include(%q{-Xmx300m -Xss512k})
 
             sleep 1
             expect(app.run("env")).
@@ -81,18 +80,22 @@ describe "Java" do
             sleep 1 # make sure the dynos don't overlap
             expect(app.run("https")).
                 to include("Successfully invoked HTTPS service.").
-                and match(%r{"X-Forwarded-Proto(col)?": "https"})
+                and match(%r{"X-Forwarded-Proto(col)?":\s?"https"})
 
-            sleep 1 # make sure the dynos don't overlap
-            expect(app.run("pgssl")).
-                to include("sslmode: require")
+            # JDK 9 and 10 do not have the jre/lib/ext dir where we drop
+            # the pgconfig.jar
+            if !jdk_version.match(/^9/) and !jdk_version.match(/^10/)
+              sleep 1 # make sure the dynos don't overlap
+              expect(app.run("pgssl")).
+                  to include("sslmode: require")
+            end
           end
         end
       end
     end
   end
 
-  %w{1.7 1.8 1.7.0_131 1.8.0_121}.each do |version|
+  %w{1.7 1.8 1.7.0_161 1.8.0_144}.each do |version|
     context "#{version} with webapp-runner" do
       let(:app) { Hatchet::Runner.new("webapp-runner-sample") }
       let(:jdk_version) { version }

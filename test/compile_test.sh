@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 
 . ${BUILDPACK_TEST_RUNNER_HOME}/lib/test_utils.sh
+. ${BUILDPACK_HOME}/lib/common.sh
+. ${BUILDPACK_HOME}/test/stdlib_stubs.sh
 
 assertCapturedSuccess() {
   assertEquals 0 "${RETURN}"
@@ -128,7 +130,7 @@ testCompileWithoutSystemProperties() {
   assertCapturedSuccess
 
   _assertMavenLatest
-  assertCaptured "Installing OpenJDK 1.8"
+  assertCaptured "Installing JDK 1.8"
   assertTrue "Java should be present in runtime." "[ -d ${BUILD_DIR}/.jdk ]"
   assertTrue "Java version file should be present." "[ -f ${BUILD_DIR}/.jdk/version ]"
 }
@@ -206,8 +208,20 @@ testCustomSettingsXmlWithUrl()
   compile
 
   assertCapturedSuccess
-  assertCaptured "Installing settings.xml"
   assertCaptured "Should download from JBoss" "Downloading: http://repository.jboss.org/nexus/content/groups/public"
+
+  unset MAVEN_SETTINGS_URL
+}
+
+testCustomSettingsXmlWithInvalidUrl()
+{
+  createPom
+
+  export MAVEN_SETTINGS_URL="https://example.com/ha7s8duysadfuhasjd/settings.xml"
+
+  compile
+
+  assertCapturedError
 
   unset MAVEN_SETTINGS_URL
 }

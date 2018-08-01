@@ -5,15 +5,21 @@
 set -e
 
 BP_DIR=$(cd $(dirname $0)/..; pwd) # absolute path
-. $BP_DIR/lib/common.sh
-. $BP_DIR/lib/maven.sh
+BUILD_DIR=$1
+ENV_DIR=$2
 
-export_env_dir $ENV_DIR
+source $BP_DIR/lib/common.sh
+source $BP_DIR/lib/maven.sh
+source <(curl -s --retry 3 -L $BUILDPACK_STDLIB_URL)
 
-cd ${1}
+export_env $ENV_DIR "." "JAVA_OPTS|JAVA_TOOL_OPTIONS"
 
-if has_maven_wrapper $1; then
-  ./mvnw -B test
+cd $BUILD_DIR
+
+mvn_settings_opt="$(_mvn_settings_opt ${BUILD_DIR} ${BUILD_DIR})"
+
+if has_maven_wrapper $BUILD_DIR; then
+  ./mvnw -B ${mvn_settings_opt} test
 else
-  mvn -B test
+  mvn -B ${mvn_settings_opt} test
 fi
