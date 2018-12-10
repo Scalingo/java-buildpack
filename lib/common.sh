@@ -3,57 +3,6 @@
 export DEFAULT_MAVEN_VERSION="3.3.9"
 export BUILDPACK_STDLIB_URL="https://lang-common.s3.amazonaws.com/buildpack-stdlib/v7/stdlib.sh"
 
-real_curl=$(which curl)
-function curl() {
-  local http_url=''
-  local write_file=''
-  local create_output_filename=''
-  local curl_args=$*
-
-  for i ; do
-    case "$i" in
-    --retry)
-      shift; shift;;
-    -O|--remote-name)
-      create_output_filename=true
-      shift;;
-    -o|--output)
-      if [[ ${2} != "-" ]]
-      then
-        write_file=${2}
-      fi
-      shift; shift;;
-    -s|--silent)
-      shift;;
-    -L|--location|--)
-      http_url=${2}; shift;
-      filename=$(sed 's/[:\/]/_/g' <<< ${http_url})
-      shift;
-    esac
-  done
-
-  ## Do we have to generate a filename ourselves to write to?
-  if [[ -n "$create_output_filename" ]]
-  then
-    write_file=$(echo ${http_url} | rev | cut -d\/ -f1 | rev)
-  fi
-
-  if test -f $BP_DIR/dependencies/$filename
-  then
-    ## Was a file to write to provided?
-    if [[ -n "$write_file" ]]
-    then
-      ## Write to file
-      cat $BP_DIR/dependencies/$filename > $write_file
-    else
-      # Stream output
-    cat $BP_DIR/dependencies/$filename
-    fi
-  else
-    $real_curl $curl_args
-  fi
-}
-
 install_maven() {
   local installDir=$1
   local buildDir=$2
