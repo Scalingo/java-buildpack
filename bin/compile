@@ -17,10 +17,6 @@ source <(curl -s --retry 3 -L $BUILDPACK_STDLIB_URL)
 
 export_env $ENV_DIR "." "JAVA_OPTS|JAVA_TOOL_OPTIONS"
 
-if [ "$STACK" = "scalingo" ] ; then
-  export STACK=cedar-14
-fi
-
 install_jdk ${BUILD_DIR}
 
 [ -n "$(find ${BUILD_DIR} -type f -name "*.kt")" ] && mcount "kotlin.source"
