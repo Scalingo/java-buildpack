@@ -4,6 +4,10 @@
 # fail fast
 set -e
 
+if [[ -n "$BUILDPACK_DEBUG" ]]; then
+  set -x
+fi
+
 BPLOG_PREFIX="buildpack.java"
 
 BP_DIR=$(cd $(dirname $0)/..; pwd) # absolute path
