@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-export DEFAULT_MAVEN_VERSION="3.3.9"
+export DEFAULT_MAVEN_VERSION="3.6.2"
 export BUILDPACK_STDLIB_URL="https://lang-common.s3.amazonaws.com/buildpack-stdlib/v7/stdlib.sh"
 
 install_maven() {
@@ -37,6 +37,12 @@ download_maven() {
 is_supported_maven_version() {
   local mavenVersion=${1}
   if [ "$mavenVersion" = "$DEFAULT_MAVEN_VERSION" ]; then
+    return 0
+  elif [ "$mavenVersion" = "3.6.2" ]; then
+    return 0
+  elif [ "$mavenVersion" = "3.5.4" ]; then
+    return 0
+  elif [ "$mavenVersion" = "3.3.9" ]; then
     return 0
   elif [ "$mavenVersion" = "3.2.5" ]; then
     return 0
