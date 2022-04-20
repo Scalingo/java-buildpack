@@ -1,7 +1,7 @@
 version = "1.0.0"
 owner = "etienne@scalingo.com"
 team = "IST"
-description = "This is a Buildpack for Java apps"
+description = "This is a buildpack for Java apps"
 languages = ["shell"]
 destination_server = []
 flags = ["buildpack"]
