@@ -1,6 +1,6 @@
 {
   "hatchet": {
-    "directory": "spec/fixtures"
+    "directory": "test/spec/fixtures"
   },
   "java": [
     "kissaten/java-servlets-sample",
@@ -15,5 +15,6 @@
   ],
   "db": [
     "kissaten/java-apache-dbcp-sample"
-  ]
+  ],
+  "github": ["heroku/java-getting-started"]
 }

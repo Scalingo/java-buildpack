@@ -10,7 +10,7 @@ ENV_DIR=$2
 
 source $BP_DIR/lib/common.sh
 source $BP_DIR/lib/maven.sh
-source <(curl -s --retry 3 -L $BUILDPACK_STDLIB_URL)
+source $BP_DIR/lib/buildpack-stdlib-v7.sh
 
 export_env $ENV_DIR "." "JAVA_OPTS|JAVA_TOOL_OPTIONS"
 
@@ -19,7 +19,7 @@ cd $BUILD_DIR
 mvn_settings_opt="$(_mvn_settings_opt ${BUILD_DIR} ${BUILD_DIR})"
 
 if has_maven_wrapper $BUILD_DIR; then
-  ./mvnw -B ${mvn_settings_opt} test
+  ./mvnw -B ${mvn_settings_opt} ${MAVEN_HEROKU_CI_GOAL:-test}
 else
-  mvn -B ${mvn_settings_opt} test
+  mvn -B ${mvn_settings_opt} ${MAVEN_HEROKU_CI_GOAL:-test}
 fi

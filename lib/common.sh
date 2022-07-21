@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 export DEFAULT_MAVEN_VERSION="3.6.2"
-export BUILDPACK_STDLIB_URL="https://lang-common.s3.amazonaws.com/buildpack-stdlib/v7/stdlib.sh"
 
 install_maven() {
   local installDir=$1
@@ -14,9 +13,9 @@ install_maven() {
   mcount "mvn.version.${mavenVersion}"
 
   status_pending "Installing Maven ${mavenVersion}"
-  if is_supported_maven_version ${mavenVersion}; then
-    mavenUrl="https://lang-jvm.s3.amazonaws.com/maven-${mavenVersion}.tar.gz"
-    download_maven ${mavenUrl} ${installDir} ${mavenHome}
+  local mavenUrl="https://lang-jvm.s3.us-east-1.amazonaws.com/maven-${mavenVersion}.tar.gz"
+  if is_supported_maven_version "${mavenVersion}" "${mavenUrl}"; then
+    download_maven "${mavenUrl}" "${installDir}" "${mavenHome}"
     status_done
   else
     error_return "Error, you have defined an unsupported Maven version in the system.properties file.
@@ -30,27 +29,16 @@ download_maven() {
   local installDir=$2
   local mavenHome=$3
   rm -rf $mavenHome
-  curl --retry 3 --silent --max-time 60 --location ${mavenUrl} | tar xzm -C $installDir
+  curl --fail --retry 3 --retry-connrefused --connect-timeout 5 --silent --max-time 60 --location "${mavenUrl}" | tar xzm -C $installDir
   chmod +x $mavenHome/bin/mvn
 }
 
 is_supported_maven_version() {
   local mavenVersion=${1}
+  local mavenUrl=${2:?}
   if [ "$mavenVersion" = "$DEFAULT_MAVEN_VERSION" ]; then
     return 0
-  elif [ "$mavenVersion" = "3.6.2" ]; then
-    return 0
-  elif [ "$mavenVersion" = "3.5.4" ]; then
-    return 0
-  elif [ "$mavenVersion" = "3.3.9" ]; then
-    return 0
-  elif [ "$mavenVersion" = "3.2.5" ]; then
-    return 0
-  elif [ "$mavenVersion" = "3.2.3" ]; then
-    return 0
-  elif [ "$mavenVersion" = "3.1.1" ]; then
-    return 0
-  elif [ "$mavenVersion" = "3.0.5" ]; then
+  elif curl -I --retry 3 --retry-connrefused --connect-timeout 5 --fail --silent --max-time 5 --location "${mavenUrl}" > /dev/null; then
     return 0
   else
     return 1
@@ -96,17 +84,18 @@ cache_copy() {
 
 install_jdk() {
   local install_dir=${1}
+  local cache_dir=${2}
 
   let start=$(nowms)
   JVM_COMMON_BUILDPACK=${JVM_COMMON_BUILDPACK:-https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tar.xz}
   mkdir -p /tmp/jvm-common
-  curl --retry 3 --silent --location $JVM_COMMON_BUILDPACK | tar --extract --xz --touch -C /tmp/jvm-common --strip-components=1
+  curl --fail --retry 3 --retry-connrefused --connect-timeout 5 --silent --location $JVM_COMMON_BUILDPACK | tar --extract --xz --touch -C /tmp/jvm-common --strip-components=1
   source /tmp/jvm-common/bin/util
   source /tmp/jvm-common/bin/java
   source /tmp/jvm-common/opt/jdbc.sh
   mtime "jvm-common.install.time" "${start}"
 
   let start=$(nowms)
-  install_java_with_overlay ${install_dir}
+  install_java_with_overlay "${install_dir}" "${cache_dir}"
   mtime "jvm.install.time" "${start}"
 }
