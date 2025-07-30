@@ -14,7 +14,7 @@ echo "---"
 if frameworks::has_postgres "${BUILD_DIR}"; then
 	cat <<EOF
 addons:
-  - heroku-postgresql
+  - postgresql:postgresql-sandbox
 EOF
 fi
 
