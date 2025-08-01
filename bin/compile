@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+BUILDPACK_DEBUG="${BUILDPACK_DEBUG:-}"
+
 set -euo pipefail
 
 if [[ -n "$BUILDPACK_DEBUG" ]]; then
