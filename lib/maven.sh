@@ -149,9 +149,7 @@ function maven::install_maven() {
 			https://maven.apache.org/docs/history.html
 
 			If it has, make sure that you are using the latest version
-			of this buildpack, and haven't pinned to an older release:
-			https://devcenter.heroku.com/articles/managing-buildpacks#view-your-buildpacks
-			https://devcenter.heroku.com/articles/managing-buildpacks#classic-buildpacks-references
+			of this buildpack, and haven't pinned to an older release.
 
 			We also strongly recommend using the Maven Wrapper instead of
 			pinning to an exact Maven version such as ${maven_version}.
@@ -178,9 +176,7 @@ function maven::install_maven() {
 			the network connection or server.
 
 			First, make sure that you are using the latest version
-			of this buildpack, and haven't pinned to an older release:
-			https://devcenter.heroku.com/articles/managing-buildpacks#view-your-buildpacks
-			https://devcenter.heroku.com/articles/managing-buildpacks#classic-buildpacks-references
+			of this buildpack, and haven't pinned to an older release.
 
 			Then try building again to see if the error resolves itself.
 
@@ -205,9 +201,7 @@ function maven::install_maven() {
 			or a temporary issue with the archive format.
 
 			First, make sure that you are using the latest version
-			of this buildpack, and haven't pinned to an older release:
-			https://devcenter.heroku.com/articles/managing-buildpacks#view-your-buildpacks
-			https://devcenter.heroku.com/articles/managing-buildpacks#classic-buildpacks-references
+			of this buildpack, and haven't pinned to an older release.
 
 			Then try building again to see if the error resolves itself.
 
@@ -276,7 +270,6 @@ function maven::check_wrapper_setup() {
 
 			For more information about Maven Wrapper, see:
 			https://maven.apache.org/tools/wrapper/
-			https://devcenter.heroku.com/articles/java-support#specifying-a-maven-version
 		EOF
 
 		metrics::set_string "maven_wrapper_incomplete" "true"
@@ -391,9 +384,6 @@ function maven::install_settings_xml() {
 				variable is correct and publicly accessible. If the settings file
 				is not needed, you can remove the MAVEN_SETTINGS_URL environment variable 
 				to use default Maven settings.
-
-				Learn more about Maven settings configuration:
-				https://devcenter.heroku.com/articles/using-a-custom-maven-settings-xml
 			EOF
 
 			metrics::set_string "failure_reason" "settings_xml::download_error"
