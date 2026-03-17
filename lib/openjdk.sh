@@ -12,7 +12,7 @@ function openjdk::install_openjdk_via_jvm_common_buildpack() {
 
 	# Legacy behaviour for customers and testing code can override the download location of the heroku/jvm buildpack
 	# with JVM_COMMON_BUILDPACK for testing and debugging purposes.
-	local jvm_common_buildpack_tarball_url="${JVM_COMMON_BUILDPACK:-https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm-common.tar.xz}"
+	local jvm_common_buildpack_tarball_url="${JVM_COMMON_BUILDPACK:-https://buildpacks-repository.s3.eu-central-1.amazonaws.com/jvm.tgz}"
 
 	local jvm_common_buildpack_tarball_path
 	jvm_common_buildpack_tarball_path=$(mktemp)
@@ -20,14 +20,19 @@ function openjdk::install_openjdk_via_jvm_common_buildpack() {
 	local jvm_common_buildpack_dir
 	jvm_common_buildpack_dir=$(mktemp -d)
 
-	curl --silent --show-error --fail \
-		--retry 3 --retry-connrefused --connect-timeout 5 \
-		--location "${jvm_common_buildpack_tarball_url}" \
+	curl \
+		--connect-timeout 3 \
+		--max-time 60 \
+		--retry 5 \
+		--retry-connrefused \
+		--no-progress-meter \
+		--fail \
+		--location \
+		"${jvm_common_buildpack_tarball_url}" \
 		-o "${jvm_common_buildpack_tarball_path}"
 
-	tar --extract --xz --touch --strip-components=1 \
-		--directory "${jvm_common_buildpack_dir}" \
-		-f "${jvm_common_buildpack_tarball_path}"
+	tar --extract --gzip --touch --directory="${jvm_common_buildpack_dir}" \
+		--strip-components=1 --file="${jvm_common_buildpack_tarball_path}"
 
 	# This script translates non-JDBC compliant DATABASE_URL (and similar) environment variables into their
 	# JDBC compatible counterparts and writes them to "JDBC_" prefixed environment variables. We source this script
@@ -36,9 +41,19 @@ function openjdk::install_openjdk_via_jvm_common_buildpack() {
 	# shellcheck source=/dev/null
 	source "${jvm_common_buildpack_dir}/opt/jdbc.sh"
 
-	# shellcheck source=/dev/null
-	source "${jvm_common_buildpack_dir}/bin/java"
+	# Run the main installation in a sub-shell to avoid it overriding library functions and global
+	# variables in the host buildpack.
+	(
+		# shellcheck source=/dev/null
+		source "${jvm_common_buildpack_dir}/bin/java"
 
-	# See: https://github.com/heroku/heroku-buildpack-jvm-common/blob/main/bin/java
-	install_openjdk "${build_dir}" "${host_buildpack_dir}"
+		# See: https://github.com/heroku/heroku-buildpack-jvm-common/blob/main/bin/java
+		install_openjdk "${build_dir}" "${host_buildpack_dir}"
+	)
+
+	# Since we run install_openjdk in a sub-shell, any environment variables set by it will not be available in this
+	# (parent) shell. As documented in the jvm buildpack, we can source the modified export script from this (host)
+	# buildpack to get the necessary changes.
+	# shellcheck source=/dev/null
+	source "${host_buildpack_dir}/export"
 }

@@ -382,7 +382,7 @@ function maven::install_settings_xml() {
 
 				Check that the URL in your MAVEN_SETTINGS_URL environment
 				variable is correct and publicly accessible. If the settings file
-				is not needed, you can remove the MAVEN_SETTINGS_URL environment variable 
+				is not needed, you can remove the MAVEN_SETTINGS_URL environment variable
 				to use default Maven settings.
 			EOF
 
