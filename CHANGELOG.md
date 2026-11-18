@@ -3,6 +3,21 @@
 ## [Unreleased]
 
 
+## [v84] - 2026-11-13
+
+* Download Maven from a Heroku-hosted mirror of Maven Central. ([#317](https://github.com/heroku/heroku-buildpack-java/pull/317))
+* Download Maven Wrapper distributions from a Heroku-hosted mirror of Maven Central for apps using Apache Maven Wrapper `3.2.0` or later with a `distributionUrl` on Maven Central. ([#317](https://github.com/heroku/heroku-buildpack-java/pull/317))
+* Warn when the Maven Wrapper is older than `3.2.0`. ([#317](https://github.com/heroku/heroku-buildpack-java/pull/317))
+* Resolve Maven Central artifacts from the Google Maven Central mirror to avoid Maven Central rate limiting. Set `MAVEN_CENTRAL_MIRROR` to `false` to opt out. ([#321](https://github.com/heroku/heroku-buildpack-java/pull/321))
+
+## [v83] - 2026-11-12
+
+* Fix Maven failing to start when the build cache holds an installation of a different Maven version. ([#315](https://github.com/heroku/heroku-buildpack-java/pull/315))
+
+## [v82] - 2026-11-12
+
+* Upgrade default Maven version to `3.10.0`. ([#313](https://github.com/heroku/heroku-buildpack-java/pull/313))
+
 ## [v81] - 2026-02-24
 
 * Improve OpenJDK installation via `jvm-common` buildpack to prevent function overrides and fix environment variable handling. ([#275](https://github.com/heroku/heroku-buildpack-java/pull/275))
@@ -148,7 +163,10 @@
 
 * Add a new config var for customizing Maven options: `MAVEN_JAVA_OPTS`.
 
-[unreleased]: https://github.com/heroku/heroku-buildpack-java/compare/v81...main
+[unreleased]: https://github.com/heroku/heroku-buildpack-java/compare/v84...main
+[v84]: https://github.com/heroku/heroku-buildpack-java/compare/v83...v84
+[v83]: https://github.com/heroku/heroku-buildpack-java/compare/v82...v83
+[v82]: https://github.com/heroku/heroku-buildpack-java/compare/v81...v82
 [v81]: https://github.com/heroku/heroku-buildpack-java/compare/v80...v81
 [v80]: https://github.com/heroku/heroku-buildpack-java/compare/v79...v80
 [v79]: https://github.com/heroku/heroku-buildpack-java/compare/v78...v79
