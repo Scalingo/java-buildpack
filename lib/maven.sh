@@ -9,7 +9,13 @@ source "${BUILDPACK_DIR}/lib/java_properties.sh"
 source "${BUILDPACK_DIR}/lib/util.sh"
 source "${BUILDPACK_DIR}/lib/metrics.sh"
 
-export DEFAULT_MAVEN_VERSION="3.9.4"
+export DEFAULT_MAVEN_VERSION="3.10.0"
+
+MAVEN_CENTRAL_MIRROR_URL="https://heroku-buildpacks-jvm.s3.dualstack.us-east-1.amazonaws.com/maven-central"
+# Older wrappers can't download Maven from the Maven Central mirror. Takari wrapper JARs ignore the distributionUrl
+# when MVNW_REPOURL is set and download a hardcoded Maven version instead. Apache Maven Wrapper 3.1.x JARs drop the
+# path of MVNW_REPOURL when downloading Maven.
+MAVEN_WRAPPER_MIN_VERSION="3.2.0"
 
 # Sets up Maven environment and builds the application.
 #
@@ -45,6 +51,38 @@ function maven::setup_maven_and_build_app() {
 
 		util::cache_copy ".m2/wrapper" "${cache_dir}" "${build_dir}"
 		chmod +x "${build_dir}/${maven_exe}"
+
+		local wrapper_version
+		wrapper_version=$(maven::wrapper_version "${build_dir}")
+		metrics::set_string "maven_wrapper_version" "${wrapper_version:-unknown}"
+
+		if maven::is_outdated_wrapper_version "${wrapper_version}"; then
+			output::warning <<-EOF
+				Warning: Outdated Maven Wrapper version.
+
+				Your app uses an outdated Maven Wrapper version (${wrapper_version:-unknown}).
+
+				Upgrade to the latest Apache Maven Wrapper version by running this
+				command in your project directory locally and committing the
+				updated files:
+				$ mvn wrapper:wrapper
+
+				This warning will become an error in a future version
+				of this buildpack.
+
+				For more information about Maven Wrapper, see:
+				https://maven.apache.org/tools/wrapper/
+			EOF
+		fi
+
+		if [[ -n "${MVNW_REPOURL:-}" ]]; then
+			metrics::set_string "maven_wrapper_repo_url_source" "user"
+		elif maven::wrapper_supports_mirror "${build_dir}"; then
+			metrics::set_string "maven_wrapper_repo_url_source" "mirror"
+			export MVNW_REPOURL="${MAVEN_CENTRAL_MIRROR_URL}"
+		else
+			metrics::set_string "maven_wrapper_repo_url_source" "default"
+		fi
 	else
 		metrics::set_raw "maven_wrapper" "false"
 		local maven_exe="mvn"
@@ -65,14 +103,25 @@ function maven::setup_maven_and_build_app() {
 
 	maven::install_settings_xml "${build_dir}" "${build_dir}/.m2/settings.xml"
 
+	local global_settings_opts=""
+	local global_settings_path
+	global_settings_path=$(mktemp)
+
+	if maven::write_central_mirror_settings "${global_settings_path}"; then
+		metrics::set_raw "maven_central_mirror" "true"
+		global_settings_opts="--global-settings ${global_settings_path}"
+	else
+		metrics::set_raw "maven_central_mirror" "false"
+	fi
+
 	output::step "Executing Maven"
 
 	echo "$ ${maven_exe} ${maven_opts} ${maven_goals}" | output::indent
 
-	# We rely on word splitting for settings_xml_opts, maven_opts, and maven_goals:
+	# We rely on word splitting for global_settings_opts, maven_opts, and maven_goals:
 	# Intentional word splitting needed for Maven command arguments
 	# shellcheck disable=SC2086
-	if ! (cd "${build_dir}" && ${maven_exe} -DoutputFile=target/mvn-dependency-list.log -B ${maven_opts} ${maven_goals}) | output::indent; then
+	if ! (cd "${build_dir}" && ${maven_exe} -DoutputFile=target/mvn-dependency-list.log -B ${global_settings_opts} ${maven_opts} ${maven_goals}) | output::indent; then
 		output::error <<-EOF
 			Error: Maven build failed.
 
@@ -115,8 +164,12 @@ function maven::install_maven() {
 
 	output::step "Installing Maven ${maven_version}..."
 
-	local maven_url="https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/${maven_version}/apache-maven-${maven_version}-bin.tar.gz"
+	local maven_url="${MAVEN_CENTRAL_MIRROR_URL}/org/apache/maven/apache-maven/${maven_version}/apache-maven-${maven_version}-bin.tar.gz"
 
+	# The Maven home lives in the cache directory and may hold a different Maven version from a
+	# previous build. Extracting over it would leave stale files behind, such as a second
+	# plexus-classworlds jar that breaks the classpath bin/mvn builds with a glob.
+	rm -rf "${maven_home}"
 	mkdir -p "${maven_home}"
 
 	local tarball_path
@@ -137,7 +190,8 @@ function maven::install_maven() {
 
 	local curl_exit_code=$?
 
-	if [[ "${http_status_code}" == "404" ]]; then
+	# S3 responds with 403 instead of 404 for missing objects since the bucket doesn't allow public listing.
+	if [[ "${http_status_code}" == "403" || "${http_status_code}" == "404" ]]; then
 		output::error <<-EOF
 			Error: The requested Maven version isn't available.
 
@@ -232,6 +286,56 @@ function maven::should_use_wrapper() {
 	# but have an mvnw script. We will enforce correct Maven wrapper setup at some point, but
 	# for now, we continue to support this and fall back to not using the wrapper in such cases.
 	[[ -f "${build_dir}/mvnw" ]] && [[ -f "${build_dir}/.mvn/wrapper/maven-wrapper.properties" ]] && [[ -z "$(java_properties::get "${build_dir}/system.properties" "maven.version")" ]]
+}
+
+# Determines if the Maven Wrapper in the given build directory can download Maven from the Maven Central mirror.
+# Returns 0 (true) if the distributionUrl points to Maven Central and the wrapper version isn't outdated.
+#
+# Usage:
+# ```
+# if maven::wrapper_supports_mirror "${BUILD_DIR}"; then
+#     export MVNW_REPOURL="${MAVEN_CENTRAL_MIRROR_URL}"
+# fi
+# ```
+function maven::wrapper_supports_mirror() {
+	local build_dir="${1}"
+
+	local distribution_url
+	distribution_url=$(java_properties::get "${build_dir}/.mvn/wrapper/maven-wrapper.properties" "distributionUrl")
+
+	if [[ "${distribution_url}" != "https://repo.maven.apache.org/maven2/"* && "${distribution_url}" != "https://repo1.maven.org/maven2/"* ]]; then
+		return 1
+	fi
+
+	! maven::is_outdated_wrapper_version "$(maven::wrapper_version "${build_dir}")"
+}
+
+# Prints the version of the Apache Maven Wrapper in the given build directory, read from the header of the mvnw
+# script. Prints nothing for wrappers without that header, such as the ones from Takari.
+#
+# Usage:
+# ```
+# wrapper_version=$(maven::wrapper_version "${BUILD_DIR}")
+# ```
+function maven::wrapper_version() {
+	local build_dir="${1}"
+
+	sed -n -E "s/^# Apache Maven Wrapper startup batch script, version ([0-9]+(\.[0-9]+)*).*/\1/p" "${build_dir}/mvnw" | head -n 1
+}
+
+# Determines if the given Maven Wrapper version is older than MAVEN_WRAPPER_MIN_VERSION.
+# Returns 0 (true) for an empty version.
+#
+# Usage:
+# ```
+# if maven::is_outdated_wrapper_version "3.1.1"; then
+#     echo "Outdated"
+# fi
+# ```
+function maven::is_outdated_wrapper_version() {
+	local wrapper_version="${1}"
+
+	[[ -z "${wrapper_version}" ]] || ! printf "%s\n" "${MAVEN_WRAPPER_MIN_VERSION}" "${wrapper_version}" | sort -V -C
 }
 
 # Checks Maven Wrapper setup completeness.
@@ -394,4 +498,42 @@ function maven::install_settings_xml() {
 		metrics::set_string "maven_settings_xml_source_type" "app_root"
 		ln -sf "${build_dir}/settings.xml" "${settings_destination}"
 	fi
+}
+
+# Writes a Maven global settings file that points the `central` repository at the Google
+# Maven Central mirror. Returns 1 without writing anything if MAVEN_CENTRAL_MIRROR is `false`.
+#
+# This is a temporary workaround for rate limiting by Maven Central.
+#
+# Usage:
+# ```
+# if maven::write_central_mirror_settings "/tmp/global-settings.xml"; then
+#     mvn --global-settings "/tmp/global-settings.xml" install
+# fi
+# ```
+function maven::write_central_mirror_settings() {
+	local settings_path="${1}"
+
+	if [[ "${MAVEN_CENTRAL_MIRROR:-}" == "false" ]]; then
+		return 1
+	fi
+
+	# Profile repositories don't apply to BOMs imported by other BOMs, which resolve from the super POM's
+	# `central` repository instead, so this declares a <mirror>. Maven prefers mirrors that match a repository
+	# id exactly over all other mirrors, which would take precedence over user mirrors such as
+	# `<mirrorOf>*</mirrorOf>`. The `!heroku-unused` exclusion turns `central` into a pattern that Maven only
+	# considers after user mirrors. The `central` mirror id keeps artifacts in the existing local repository
+	# cache valid.
+	cat >"${settings_path}" <<-EOF
+		<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 https://maven.apache.org/xsd/settings-1.0.0.xsd">
+		  <mirrors>
+		    <mirror>
+		      <id>central</id>
+		      <mirrorOf>central,!heroku-unused</mirrorOf>
+		      <url>https://maven-central.storage-download.googleapis.com/maven2</url>
+		    </mirror>
+		  </mirrors>
+		</settings>
+	EOF
 }
